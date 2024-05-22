@@ -1,55 +1,90 @@
-# **************************************************************************** #
-#                                                                              #
-#                                                         :::      ::::::::    #
-#    Makefile                                           :+:      :+:    :+:    #
-#                                                     +:+ +:+         +:+      #
-#    By: mriant <mriant@student.42.fr>              +#+  +:+       +#+         #
-#                                                 +#+#+#+#+#+   +#+            #
-#    Created: 2022/10/03 16:58:38 by mriant            #+#    #+#              #
-#    Updated: 2022/10/03 18:17:46 by mriant           ###   ########.fr        #
-#                                                                              #
-# **************************************************************************** #
+SRC		= down.c            \
+		  libft.c           \
+		  light.c           \
+		  main.c            \
+		  parse_camcyl.c    \
+		  parse_light.c     \
+		  parse_num.c       \
+		  parse_object.c    \
+		  parse_start.c     \
+		  parsing.c         \
+		  planes.c          \
+		  remove.c          \
+		  render.c          \
+		  screen.c          \
+		  storage.c         \
+		  sphere.c          \
+		  vec.c             \
+		  transform.c       \
+		  arithmv3.c        \
+		  arithmv4.c		\
+		  mat.c             \
+		  mat_inv.c         \
+		  mat_inv_utils.c   \
+		  cylinders.c       \
+		  cylinders_inter.c \
 
-NAME = miniRT
-
-SRCS = ${addprefix srcs/, \
-	main.c}
-OBJS = ${SRCS:srcs/%.c=build/%.o}
-DEPS = ${SRCS:srcs/%.c=build/%.d}
+OBJ		:= $(addprefix obj/, $(SRC:.c=.o))
+DEP := $(addprefix dep/, $(SRC:.c=.d))
+ERRORFILE	:= $(addprefix err/, $(addsuffix .err, $(SRC) $(HEADER)))
 
 MLX_DIR = ./minilibx-linux
 MLX = libmlx_Linux.a
 MLX_L = ${MLX:lib%.a=%}
 
-CC = cc
-CFLAGS = -Wall -Wextra -Werror -g
-IFLAGS = -MMD -I./includes -I./minilibx-linux
-LFLAGS = -L${MLX_DIR} -l${MLX_L} -lXext -lX11 -lm -lz
+NAME	= miniRT
 
-${NAME}: ${MLX_DIR}/${MLX} ${OBJS}
-	${CC} ${CFLAGS} ${OBJS} -o ${NAME} ${LFLAGS}
+CFLAGS	:= $(DEBUG) -Ofast -march=native -flto -g -Wall -Wextra -Werror
+CPPFLAGS += -I ${MLX_DIR}
+LFLAGS	=  -l${MLX_L} -lXext -lX11 -lm
+LDFLAGS	= -L ${MLX_DIR}
+
+CC		= clang
+
+$(NAME) : ${MLX_DIR}/${MLX} $(OBJ)
+	$(CC)  -o $(NAME) $(CFLAGS) $(OBJ) $(LDFLAGS) $(LFLAGS)
 
 ${MLX_DIR}/${MLX}:
 	make -C ${MLX_DIR}
 
-build/%.o: srcs/%.c
-	mkdir -p build
-	${CC} ${CFLAGS} -c $< -o $@ ${IFLAGS}
+$(OBJ)	: obj/%.o : %.c dep/%.d | dep
+	$(CC) -c $(CPPFLAGS) $(CFLAGS) $< -o $@
 
-.PHONY: all
-all: ${NAME}
+$(DEP)	: dep/%.d: %.c | dep
+	@set -e; rm -f $@; \
+		$(CC) -MM $(CPPFLAGS) $< > $@.$$$$; \
+		sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
+		rm -f $@.$$$$
 
-.PHONY: clean
-clean:
-	rm -rf build
+dep:
+	mkdir dep
 
-.PHONY: fclean
-fclean: clean
-	rm -rf ${NAME}
+include $(DEP)
+
+$(OBJ)	: | obj
+
+obj		:
+	mkdir obj
+
+all		: $(NAME)
+
+fclean	: clean
+	$(RM) $(NAME)
 	make -C ${MLX_DIR} clean
 
-.PHONY: re
-re: fclean
-	make -C .
+clean	:
+	$(RM) -rf obj
+	$(RM) -rf dep
 
--include ${DEPS}
+re		: fclean
+	$(MAKE)
+
+norm	: errors.err
+
+$(ERRORFILE) : err/%.err : %
+	-norminette $< > $@
+
+errors.err: $(ERRORFILE)
+	cat $^ > errors.err | awk '! /OK/ {print}' | touch $@
+
+.PHONY	: re clean fclean all norm
