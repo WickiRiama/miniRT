@@ -9,7 +9,7 @@ It is a 42 school project, developped in C with the school graphic library, the 
 You can generate static scenes composed of plans, sphere or cylinders. There can be several light sources, with different colors.
 
 ![miniRT](./readme/miniRT_caterpillar.png) 
-![miniRT](./readme/img/miniRT_columns.png)
+![miniRT](./readme/miniRT_columns.png)
 
 ## Getting Started
 
